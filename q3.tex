@@ -1,0 +1,124 @@
+%%% Question 3 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+\question This question is about user-defined types and type classes.
+\begin{parts}
+    \part Consider the usual definition of length-indexed vectors in Haskell:
+\begin{minted}{haskell}
+data Vector (n :: Nat) a where 
+  Empty :: Vector 'Zero a 
+  Cons :: a -> Vector n a -> Vector ('Succ n) a
+\end{minted}
+
+    \begin{subparts}
+        \subpart[3] The \haskellIn{Vector} type is a functor. Define a suitable instance of the \haskellIn{Functor} type class for it. \droppoints
+
+        \begin{solution}
+            \emph{Application.}
+\begin{minted}{haskell}
+instance Functor (Vector n) where
+    fmap f Empty = Empty
+    fmap f (Cons x xs) = Cons (f x) (fmap f xs)
+\end{minted}
+        \end{solution}
+
+        \subpart[10] Prove that your instance of the \haskellIn{Functor} type class for the \haskellIn{Vector} type obeys both functor laws. \droppoints
+
+        \begin{solution}
+            \emph{Application.} 1 mark for identity base case, 3 marks for identity inductive step, 2 marks for fusion base case, 4 marks for fusion inductive step.
+\begin{verbatim}
+Identity:
+
+  fmap id Empty
+= Empty
+= id Empty
+
+  fmap id (Cons x xs)
+= Cons (id x) (fmap id xs)
+= Cons x (fmap id xs)
+= Cons x (id xs)
+= Cons x xs
+= id (Cons x xs)
+
+Fusion:
+
+  fmap f (fmap g Empty)
+= fmap f Empty
+= Empty
+= fmap (f.g) Empty
+
+  fmap f (fmap g (Cons x xs))
+= fmap f (Cons (g x) (fmap g xs))
+= Cons (f (g x)) (fmap f (fmap g xs))
+= Cons (f (g x)) (fmap (f.g) xs)
+= Cons ((f.g) x) (fmap (f.g) xs)
+= fmap (f.g) (Cons x xs)
+\end{verbatim}
+        \end{solution}
+    \end{subparts}
+
+\part Consider the following definition of a length-indexed zipper type for vectors where \haskellIn{n} represents the number of elements on the left of the view and \haskellIn{m} represents the number of elements on the right of the view:
+\begin{minted}{haskell}
+data IxZipper (n :: Nat) (m :: Nat) a where
+  MkZipper :: Vector n a -> a -> Vector m a -> IxZipper n m a
+\end{minted}
+\begin{subparts}
+    \subpart[5] For ordinary zippers, we have a function
+    \vspace*{0.2cm}
+\begin{minted}{haskell}
+fromList :: [a] -> Zipper a
+\end{minted}
+    \vspace*{0.2cm}
+    which constructs a zipper from a list, using the head of the list as the element in the view and all other elements as those right of the view. The function crashes for empty lists. Define an equivalent function named \haskellIn{fromVector} for the \haskellIn{IxZipper} type which takes a vector as the input and cannot be used on an empty vector. Additionally, explain how your solution accomplishes this. \droppoints
+
+    \begin{solution}
+        \emph{Application.}
+\begin{minted}{haskell}
+fromVector :: Vector ('Succ n) a -> IxZipper 'Zero n a
+fromVector (Cons x xs) = MkZipper Empty x xs
+\end{minted}
+    By taking a \haskellIn{Vector} with a non-zero length, enforced by \haskellIn{'Succ n} in the explicit type signature, we ensure that the input is a vector with at least one element.
+    \end{solution}
+
+    \subpart[5] For ordinary zippers, we have functions
+    \vspace*{0.2cm}
+\begin{minted}{haskell}
+leftShift :: Zipper a -> Zipper a 
+rightShift :: Zipper a -> Zipper a
+\end{minted}
+    \vspace*{0.2cm}
+    which shift the view to the left or right, respectively. If this is not possible, the input is returned unchanged. However, with our \haskellIn{IxZipper} type we can rule out that the functions may be called on zippers where there are no more elements to the left or right. Define two equivalent functions \haskellIn{leftShiftIx} and \haskellIn{rightShiftIx} so that they can only be called if the state of the \haskellIn{IxZipper} value will change. \droppoints
+
+    \begin{solution}
+        \emph{Application.}
+\begin{minted}{haskell}
+leftShift :: 
+  IxZipper ('Succ n) m a -> IxZipper n ('Succ m) a
+leftShift (MkZipper (Cons y ys) x r) = 
+  MkZipper ys y (Cons x r)
+
+rightShift :: 
+  IxZipper n ('Succ m) a -> IxZipper ('Succ n) m a
+rightShift (MkZipper l x (Cons y ys)) = 
+  MkZipper (Cons x l) y ys
+\end{minted}
+    \end{solution}
+
+    \subpart[2] The following property states that shifting a zipper's view to the right and then back to the left results in the same zipper we started with:
+    \begin{center}
+        \texttt{\small leftShift (rightShift (fromVector (Cons x (Cons y ys))))}\\
+        \texttt{\small == fromVector (Cons x (Cons y ys)))}
+    \end{center}
+    Prove that this property holds. \droppoints
+
+    \begin{solution}
+        \emph{Application.}
+\begin{verbatim}
+  leftShift (rightShift (fromVector (Cons x (Cons y ys))))
+= leftShift (rightShift (MkZipper Empty x (Cons y ys)))
+= leftShift (MkZipper (Cons x Empty) y ys)
+= MkZipper Empty x (Cons y ys)
+= fromVector (Cons x (Cons y ys)))
+\end{verbatim}
+    \end{solution}
+\end{subparts}
+
+\end{parts}

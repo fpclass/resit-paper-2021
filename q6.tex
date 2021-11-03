@@ -1,0 +1,89 @@
+%%% Question 6 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+\question This question is about type-level programming. For this question, you may assume that all of GHC's language extensions are available to you. A library author wants to annotate configuration values at the type-level to reflect settings which have an impact on the library's security. The author currently has the following record type to represent configurations for the library which store a path to a file, represented as a \haskellIn{String}, and a value of type \haskellIn{Bool}:
+\begin{minted}{haskell}
+data Config = MkConfig {
+    cfgPublicKeyPath :: String,
+    cfgCheckExpired :: Bool
+}
+\end{minted}
+\begin{parts}
+    \part[4] The library author defines a new type to enumerate different security-related tags for the \haskellIn{Config} type based on modifications he is planning to the \haskellIn{Config} type later:
+\begin{minted}{haskell}
+data SecurityTag = NoPublicKey | NoCheckExpired
+\end{minted}
+    Show how to modify the \haskellIn{Config} type to be of kind \haskellIn{[SecurityTag] -> *} and explain which language extensions are needed and why. \droppoints   
+
+    \begin{solution}
+        \emph{Application.} \haskellIn{DataKinds} is needed to promote data types to kinds (1 mark) and \haskellIn{KindSignatures} is needed for the kind signature on \haskellIn{opts} (1 mark). 2 marks for the definition:
+\begin{minted}{haskell}
+data Config (opts :: [SecurityTag]) = MkConfig {
+    cfgPublicKeyPath :: String,
+    cfgCheckExpired :: Bool
+}
+\end{minted}
+    \end{solution}
+
+    \part[4] The library author now wants the type of \haskellIn{cfgPublicKeyPath} to vary depending on whether the list of \haskellIn{SecurityTag} types includes \haskellIn{NoPublicKey} or not. Define a closed type family
+\begin{minted}{haskell}
+IfFlag :: SecurityTag -> [SecurityTag] -> * -> * -> *
+\end{minted}
+    which checks whether the list of \haskellIn{SecurityTag} types includes the \linebreak \haskellIn{SecurityTag} type specified as the first argument. If so, then the first type of kind \haskellIn{*} should be returned. Otherwise, the second type of kind \haskellIn{*} should be returned. For example, \haskellIn{IfFlag 'NoPublicKey '[] Bool String} should evaluate to \haskellIn{String} and \haskellIn{IfFlag 'NoPublicKey '[NoPublicKey] Bool String} should evaluate to \haskellIn{Bool}.
+    \droppoints 
+
+    \begin{solution} \emph{Application.} 
+\begin{minted}{haskell}
+type family IfFlag 
+    (x :: SecurityTag) 
+    (xs :: [SecurityTag]) 
+    (t :: *) (f :: *) :: * where
+
+    IfFlag x '[] t f = f
+    IfFlag x (x ': xs) t f = t
+    IfFlag x (y ': xs) t f = IfFlag x xs t f
+\end{minted}
+    \end{solution}
+
+    \part[2] With the help of \haskellIn{IfFlag}, modify your definition of the \haskellIn{Config} type so that \haskellIn{cfgPublicKeyPath} has type \haskellIn{String} if the list of \haskellIn{SecurityTag} types does not contain \haskellIn{NoPublicKey} or the unit type \haskellIn{()} otherwise. \droppoints
+
+\begin{minted}{haskell}
+data Config (opts :: [SecurityTag]) = MkConfig {
+    cfgPublicKeyPath :: IfFlag 'NoPublicKey opts () String,
+    cfgCheckExpired :: Bool
+}
+\end{minted}    
+
+    \part[6] Define a singleton type variant of the \haskellIn{Bool} type, named \haskellIn{SBool} and explain which language extensions are needed and why. \droppoints
+
+    \begin{solution}
+        \emph{Comprehension.} In addition to the \haskellIn{DataKinds} extension to promote \haskellIn{Bool} to a kind (1 mark), \haskellIn{KindAnnotations} to annotate \haskellIn{b} with its kind (1 mark), we also require \haskellIn{GADTs} (1 mark) to customise the return types of the data constructors (1 mark). 2 marks for the definition (bookwork):
+\begin{minted}{haskell}
+data SBool (b :: Bool) where
+    SFalse :: SBool 'False
+    STrue :: SBool 'True
+\end{minted}
+    \end{solution}
+
+    \part[4] With the help of \haskellIn{IfFlag}, modify your definition of the \haskellIn{Config} type so that \haskellIn{cfgCheckExpired} can only be set to \haskellIn{STrue} if the list of \haskellIn{SecurityTag} types contains \haskellIn{NoCheckExpired} or can only be set to \haskellIn{SFalse} otherwise. \droppoints
+
+    \begin{solution}
+        \emph{Application.}
+\begin{minted}{haskell}
+data Config (opts :: [SecurityTag]) = MkConfig {
+  cfgPublicKeyPath :: 
+    IfFlag 'NoPublicKey opts () String,
+  cfgCheckExpired :: 
+    IfFlag 'NoCheckExpired opts (SBool 'True) (SBool 'False)
+}
+\end{minted} 
+    \end{solution}
+
+    \part[5] Given a type-level list, we can construct a function type where the types contained in the type-level list represent the parameters. Define a closed type family \haskellIn{MkFun} of kind \haskellIn{[*] -> * -> *} so that, for example, \haskellIn{Fun (Cons Int (Cons String Empty)) Bool} evaluates to \haskellIn{Int -> String -> Bool}. That is, the first parameter is the list of parameter types, the second is the return type, and the result is the resulting function type. \droppoints 
+    \begin{solution}
+        \emph{Application.} 
+\begin{minted}{haskell}
+type family MkFun (f :: [*]) r where
+    MkFun '[]      r = r
+    MkFun (a ': f) r = a -> Fun f r
+\end{minted}
+    \end{solution}
+\end{parts}

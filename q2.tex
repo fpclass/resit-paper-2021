@@ -1,0 +1,102 @@
+%%% Question 2 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+\question This question is about recursive and higher-order functions. 
+
+\begin{parts}
+
+    \part[5] Write a function
+\begin{minted}{haskell}
+isBalanced :: String -> Bool
+\end{minted}
+    which checks whether a string only contains matching pairs of parentheses. As examples, \haskellIn{isBalanced "a((b)c)(d)"} should evaluate to \haskellIn{True} while \linebreak \haskellIn{isBalanced ":)"} and \haskellIn{isBalanced ")()("} should evaluate to \haskellIn{False}. \droppoints
+    
+    \begin{solution}
+        \emph{Application}.
+\begin{minted}{haskell}
+isBalanced :: String -> Bool
+isBalanced = check 0
+    where check n "" = n == 0
+          check n ('(':xs) = check (n+1) xs
+          check n (')':xs)
+           | n > 0 = check (n-1) xs
+           | otherwise = False
+          check n (_:xs) = check n xs
+\end{minted}
+    \end{solution}
+
+    \part[4] Regardless of your implementation of \haskellIn{isBalanced}, briefly discuss what the time complexity of the function should be -- how many evaluation steps does it take relative to the size of the input \haskellIn{String}. For any given input, what is the worst case, what is the best case, and why? \droppoints
+
+    \begin{solution}
+        \emph{Comprehension/Application.} The function is $\mathcal{O}(n)$  with respect to the size of its input in the worst case (1 mark) since we must inspect every character in order (1 mark). The base case is constant \emph{regardless} of the size of the input (1 mark) since we can stop if we encounter a \haskellIn{')'} without first encountering a corresponding \haskellIn{'('} such as in \haskellIn{isBalanced ")averylongstringhere"} (1 mark).
+    \end{solution}
+
+    \part[5] Define a new function, \haskellIn{isBalanced'}, which does not hardcode the \haskellIn{'('} and \haskellIn{')'} characters and instead accepts arbitrary predicates of type \haskellIn{Char -> Bool} as arguments to determine whether something is an opening character or a closing character. 
+    
+    For example, once you have completed \haskellIn{isBalanced'}, it should then be possible to implement \haskellIn{isBalanced} as \haskellIn{isBalanced' (=='(') (==')')}. You may assume that the two predicates given to your function do not both return \haskellIn{True} for the same input. \droppoints
+
+    \begin{solution}
+        \emph{Application}.
+\begin{minted}{haskell}
+isBalanced' 
+  :: (Char -> Bool) -> (Char -> Bool) -> String -> Bool
+isBalanced' op cl = check 0
+    where check n "" = n == 0
+          check n (x:xs)
+           | op x = check (n+1) xs
+           | cl x && n > 0 = check (n-1) xs
+           | cl x && n == 0 = False
+           | otherwise = check n xs
+\end{minted}
+    \end{solution}    
+
+    \part[5] In addition to deciding whether a string contains only matching opening and closing characters, we now also want to return the number of such matching pairs. Define a function \haskellIn{isBalanced''} whose type is the same as that of \haskellIn{isBalanced'} except that the return type is now \haskellIn{(Int, Bool)}. 
+    
+    For example, \haskellIn{isBalanced'' (=='[') (==']') "[[1]][0][]"} should evaluate to \haskellIn{(4, True)} while \haskellIn{isBalanced'' (=='[') (==']') "[[1]][0]]"} \linebreak should evaluate to \haskellIn{(3, False)}. In the case of an unmatched closing character, you should return the number of matching pairs found up until that point only. \droppoints
+
+    \begin{solution}
+        \emph{Application}.
+\begin{minted}{haskell}
+isBalanced'' 
+  :: (Char -> Bool) -> (Char -> Bool) 
+  -> String -> (Int, Bool)
+isBalanced'' op cl = check 0 0
+    where check n m "" = (m, n == 0)
+          check n m (x:xs)
+           | op x = check (n+1) m xs
+           | cl x && n > 0 = check (n-1) (m+1) xs
+           | cl x && n == 0 = (m, False)
+           | otherwise = check n m xs
+\end{minted}
+    \end{solution} 
+
+    \part[6] A very observant student notices that computational effects could greatly generalise the function. Define a new function \haskellIn{isBalanced'''} where you change the types of the predicates from \haskellIn{Char -> Bool} to \haskellIn{Char -> m Bool}, add an extra parameter of type \haskellIn{m ()} which will be called when a matching pair is found, and change the return type of the overall function to \haskellIn{m Bool} where \haskellIn{m} would be constrained by \haskellIn{Monad}. For example, the ``counting'' behaviour of \haskellIn{isBalanced''} could then be implemented using \haskellIn{isBalanced'''} and the state monad as follows:
+    \begin{minted}{haskell}
+isBalanced'' op cl xs = 
+  runState (isBalanced''' op' cl' f xs) 0
+  where op' = pure . op
+        cl' = pure . cl
+        f = get >>= \n -> put (n+1)
+    \end{minted}
+    Implement \haskellIn{isBalanced'''}. \droppoints
+
+    \begin{solution}
+        \emph{Application}.
+\begin{minted}{haskell}
+isBalanced''' 
+  :: Monad m 
+  => (Char -> m Bool) 
+  -> (Char -> m Bool) 
+  -> m ()
+  -> String -> m Bool
+isBalanced''' op cl f = check 0
+    where check n "" = pure (n == 0)
+          check n (x:xs) = do
+            isOp <- op x
+            if isOp then check (n+1) xs
+            else do
+              isCl <- cl x
+              if isCl && n > 0 then f >> check (n-1) xs
+              else if isCl && n == 0 then pure False
+                   else check n xs
+\end{minted}
+    \end{solution}
+\end{parts}

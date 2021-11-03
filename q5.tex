@@ -1,0 +1,88 @@
+
+%%% Question 5 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+\question This question is about functors, applicative functors, and monads. You may assume that functor, applicative functor, and monad laws have been proved for all \haskellIn{Functor}, \haskellIn{Applicative}, and \haskellIn{Monad} instances except your own. You may \textbf{not} make use of GHC extensions such as \texttt{\small DeriveFunctor}. Consider the following type: % or maybe pairs?
+\begin{minted}{haskell}
+data U w u = W u | U (w (U w u))
+\end{minted}
+\begin{parts} 
+    \part[5] Define a suitable instance of the \haskellIn{Functor} type class for the \haskellIn{U} type, adding suitable super-class constraints if necessary. \emph{Hint:} for your own benefit, remember to write down the specialised type signature of \haskellIn{fmap} and think about the types of the values you are working with. \droppoints 
+    
+    \begin{solution} \emph{Application.} 2 marks for the correct instance head, 1 mark for the base case, and 2 marks for the recursive case.
+\begin{minted}{haskell}
+instance Functor f => Functor (U f) where 
+    fmap f (W u) = W (f u)
+    fmap f (U wu) = U (fmap (fmap f) wu)
+\end{minted}
+    \end{solution}
+
+    \part[10] Use induction to prove that your instance of the \haskellIn{Functor} type class for the \haskellIn{U} type obeys \emph{both} functor laws. \emph{Hint:} in the inductive cases, you may assume that your induction hypothesis is for \emph{all recursive occurrences} of the \haskellIn{U} type. \droppoints
+    
+    \begin{solution}
+    Proofs (4 marks for identity, 6 marks for fusion):
+\begin{verbatim}
+Identity law. The proof is by induction. Base case (1 mark):
+
+fmap id (W u) 
+= { applying fmap }
+W (id u)
+= { applying id }
+W u
+= { unapplying id }
+id (W u)
+
+Inductive step (3 marks):
+
+fmap id (U wu)
+= { applying fmap }
+U (fmap (fmap id) wu)
+= { induction hypothesis holds for 
+    all recursive occurrences }
+U (fmap id wu)
+= { type f is a functor: identity law }
+U (id wu)
+= { applying id }
+U wu
+= { unapplying id }
+id (U wu)
+
+Fusion law. The proof is by induction. Base case (2 marks):
+
+fmap f (fmap g (W u))
+= { applying fmap }
+fmap f (W (g u))
+= { applying fmap }
+W (f (g u))
+= { definition of function composition }
+W ((f . g) u)
+= { unapplying fmap }
+fmap (f . g) (W u)
+
+Inductive step (4 marks):
+
+fmap f (fmap g (U wu))
+= { applying fmap }
+fmap f (U (fmap (fmap g) wu))
+= { applying fmap }
+U (fmap (fmap f) (fmap (fmap g) wu))
+= { type f is a functor: fusion law }
+U (fmap (fmap f . fmap g) wu)
+= { induction hypothesis }
+U (fmap (fmap (f . g)) wu)
+= { unapplying fmap }
+fmap (f . g) (U wu)
+\end{verbatim}
+    \end{solution}
+    
+    \part[10] Assume that there is a suitable instance of the \haskellIn{Applicative} type class for the \haskellIn{U} type. Now define a suitable instance of the \haskellIn{Monad} type class, including both \haskellIn{return} and \haskellIn{>>=}, for the \haskellIn{U} type, adding suitable super-class constraints if necessary. Your definition should obey the monad laws, although you do not need to prove this. \emph{Hint:} for your own benefit, remember to write down the specialised type signatures of \haskellIn{return} and \haskellIn{>>=} and think about the types of the values you are working with. \droppoints
+    
+    \begin{solution}
+        \emph{Application.} 1 mark for \haskellIn{return} (if someone writes \haskellIn{pure} instead of \haskellIn{W}, award the mark as well), 2 marks for the \haskellIn{W} case for \haskellIn{>>=} and 4 marks for the \haskellIn{U} case. The remaining 3 marks are for the correct instance head, including identifying that a \haskellIn{Functor} constraint is sufficient for \haskellIn{f} -- 2 marks are available if a more restrictive constraint, such as \haskellIn{Monad} is used for \haskellIn{f}.
+\begin{minted}{haskell}
+instance Functor f => Monad (U f) where 
+    return = W
+
+    W u >>= g = g u
+    U wu >>= g = U (fmap (>>= g) wu)
+\end{minted}
+    \end{solution}
+\end{parts}

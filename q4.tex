@@ -1,0 +1,128 @@
+\allowdisplaybreaks
+%%% Question 4 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+\question This question is about equational reasoning. 
+\begin{parts}
+    
+    \part[5] The \haskellIn{map} function does not change the length of a list:
+    \begin{center}
+        \texttt{\small length (map f xs) == length xs}
+    \end{center}
+    Prove that this property holds. \droppoints
+
+    \begin{solution}
+        \emph{Application.} 1 mark for the base case, 4 marks for the inductive case.
+\begin{verbatim}
+Proof by induction on xs.
+Base case:
+length (map f [])
+= { map }
+length []
+
+Inductive case:
+length (map f (x:xs))
+= { map }
+length (f x : map f xs)
+= { length }
+1 + length (map f xs)
+= { IH }
+1 + length xs
+= { unapply length }
+length (x:xs)
+\end{verbatim}
+    \end{solution}
+
+    \part[20] Consider the following function which conses some value to the start of each list in a list of lists:
+\begin{minted}{haskell}
+prependAll :: a -> [[a]] -> [[a]]
+prependAll x = map (x:)
+\end{minted}
+    We can use this to define another function which conses all values from a list to each list in a list of lists:
+\begin{minted}{haskell}
+prependProduct :: [a] -> [[a]] -> [[a]]
+prependProduct xs yss = 
+    concat (map (\x -> prependAll x yss) xs)
+\end{minted}
+    Since we cons every element from \haskellIn{xs} to every list in \haskellIn{yss}, the result of calling \haskellIn{prependProduct} is a list whose length is the product of the length of \haskellIn{xs} and the length of \haskellIn{yss}:
+\begin{center}
+    \texttt{\small length (prependProduct xs yss) == length xs * length yss}
+\end{center}
+    Prove this property with the help of the previous property you proved about \haskellIn{map}. Additionally, you may assume standard properties of arithmetic hold. If any other auxiliary lemmas are required, you should prove those. \droppoints
+
+    \begin{solution}
+        \emph{Application.}
+\begin{verbatim}
+Induction on xs.
+Base case (main proof - 5 marks):
+length (prependProduct [] yss)
+= { applying prependProduct }
+length (concat (map (\x -> prependAll x yss) []))
+= { applying map }
+length (concat [])
+= { applying concat }
+length []
+= { applying length }
+0
+= { identity of multiplication }
+0 * length yss
+= { unapplying length }
+length [] * length yss
+
+For the inductive case, we need to prove that length 
+distributes over ++:
+
+length (xs ++ ys) == length xs + length ys
+
+Note that the same proof was required for the summer paper, 
+although the property was asked for explicitly there while 
+it is implicitly required here:
+
+Base case (lemma - 2 marks):
+length ([] ++ ys) 
+= { applying ++ }
+  length ys 
+= { left identity of + }
+  0 + length ys
+= { unapplying length }
+  length [] + length ys
+
+Inductive case (lemma - 5 marks):
+  length ((x:xs) ++ ys)
+= { applying ++ }
+  length (x : (xs ++ ys))
+= { applying length }
+  1 + length (xs++ys)
+= { induction hypothesis }
+  1 + (length xs + length ys)
+= { associativity of + }
+  (1 + length xs) + length ys
+= { unapplying length }
+  length (x:xs) + length ys
+
+Inductive case (main proof - 8 marks):
+length (prependProduct (z:zs) yss)
+= { applying prependProduct } 
+length (concat (map (\x -> prependAll x yss) (z:zs)))
+= { applying map }
+length (concat ((prependAll z yss) : 
+    map (\x -> prependAll x yss) zs))
+= { applying concat }
+length ((prependAll z yss) ++ 
+    concat (map (\x -> prependAll x yss) zs))
+= { distributivity of length over ++ } 
+length (prependAll z yss) + 
+    length (concat (map (\x -> prependAll x yss) zs))
+= { applying prependAll }
+length (map (z:) yss) + 
+    length (concat (map (\x -> prependAll x yss) zs))
+= { map doesn't change the length of a list }
+length yss + 
+    length (concat (map (\x -> prependAll x yss) zs))
+= { induction hypothesis }
+length yss + (length zs * length yss) 
+= { arithmetic }
+(1 + length zs) * length yss
+= { unapplying length }
+length (z:zs) * length yss 
+\end{verbatim}
+    \end{solution}
+\end{parts}

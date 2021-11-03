@@ -1,0 +1,145 @@
+%%% Question 1 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+\question This question is about functional programming as a programming paradigm.
+
+\makeatletter
+\renewcommand{\verbatim@font}{\ttfamily \small}
+\makeatother
+
+\begin{parts}
+    
+    \part Reduce all of the following Haskell expressions to normal forms. Your answers \emph{must} include all reduction steps. No marks are awarded for answers which just state the normal form.
+    
+    \begin{subparts}
+        
+        \subpart[2] \haskellIn{last "jedi"}  \droppoints
+        
+        \begin{solution}
+            \emph{Comprehension/Application.} For all parts of this question: 2 marks for a full, complete trace. 1 mark if there is one \emph{minor} error. 0 marks otherwise.
+\begin{verbatim}
+   last "jedi"
+=> last "edi"
+=> last "di"
+=> last "i"
+=> 'i'
+\end{verbatim}
+        \end{solution}
+        
+        \subpart[2] \haskellIn{reverse [reverse, (++) []]} \droppoints 
+        
+        \begin{solution}
+        \emph{Comprehension.}
+\begin{verbatim}
+   reverse [reverse, (++) []]
+=> reverse [(++) []] ++ [reverse]
+=> reverse [] ++ [(++) []] ++ [reverse]
+=> [] ++ [(++) []] ++ [reverse]
+=> [(++) []] ++ [reverse]
+=> [] ++ ((++) [] : [reverse])
+=> (++) [] : [reverse]
+== [(++) [], reverse]
+\end{verbatim}
+        \end{solution}
+    
+        \subpart[2] \haskellIn{fmap (fmap (\f a -> (*2) . f a)) (Just [(+),(-)])}  \droppoints
+        
+        \begin{solution}
+        \emph{Comprehension.}
+\begin{verbatim}
+   fmap (fmap (\f a -> (*2) . f a)) (Just [(+),(-)])
+=> Just (fmap (\f a -> (*2) . f a) [(+),(-)])
+=> Just ((\f a -> (*2) . f a) (+) : 
+   fmap (\f a -> (*2) . f a) [(-)])
+=> Just ((\a -> (*2) . (+) a) : 
+   fmap (\f a -> (*2) . f a) [(-)])
+=> Just ((\a -> (*2) . (+) a) : 
+   (\f a -> (*2) . f a) (-) : 
+   fmap (\f a -> (*2) . f a) [])
+=> Just ((\a -> (*2) . (+) a) : 
+   (\a -> (*2) . (-) a) : 
+   fmap (\f a -> (*2) . f a) [])
+=> Just ((\a -> (*2) . (+) a) : 
+   (\a -> (*2) . (-) a) : [])
+== Just [\a -> (*2) . (+) a, \a -> (*2) . (-) a]
+\end{verbatim}
+        \end{solution}
+    
+        \subpart[2] \haskellIn{length (take 2 (repeat repeat))} \droppoints
+        
+        \begin{solution}
+            \emph{Comprehension.}
+\begin{verbatim}
+   length (take 2 (repeat repeat))
+=> length (take 2 (repeat : repeat repeat))
+=> length (repeat : take 1 (repeat repeat))
+=> 1 + length (take 1 (repeat repeat))
+=> 1 + length (take 1 (repeat : repeat repeat))
+=> 1 + length (repeat : take 0 (repeat repeat))
+=> 1 + 1 + length (take 0 (repeat repeat))
+=> 1 + 1 + length []
+=> 1 + 1 + 0
+=> 2
+\end{verbatim}
+        \end{solution}
+    
+        \subpart[2] \haskellIn{let a = Just 4 in pure (+) <*> a} \droppoints
+        
+        \begin{solution}
+        \emph{Comprehension.} 
+\begin{verbatim}
+   let a = Just 4 in pure (+) <*> a
+=> pure (+) <*> Just 4
+=> Just (+) <*> Just 4
+=> Just (4+)
+\end{verbatim}
+        \end{solution}
+    \end{subparts}
+
+    %\ifprintanswers \else \pagebreak \fi
+
+    \part[5] Consider the following definition of \haskellIn{map}:
+    \begin{small}
+\begin{minted}{haskell}
+map :: (a -> b) -> [a] -> [b]
+map f []     = []
+map f (x:xs) = f x : map f xs
+\end{minted}
+    \end{small}
+    \haskellIn{map} above is defined in terms of explicit recursion. Define an equivalent function \haskellIn{map'} in terms of a single call to \haskellIn{foldl} with suitable arguments so that it is not explicitly recursive. \droppoints 
+    
+    \begin{solution}
+    \emph{Application.} One possible answer is:
+\begin{minted}{haskell}
+map' f = foldl (\r x -> r ++ [f x]) []
+\end{minted}
+    \end{solution}
+\part[5] Define a closed type family 
+\begin{minted}{haskell}
+Odd :: Nat -> Bool
+\end{minted}
+which determines whether a type-level natural number is odd or not. For example, \haskellIn{Odd ('Succ 'Zero)} should evaluate to \haskellIn{'True}. You may assume that the \haskellIn{Bool} type has been promoted to a kind. If you require any helper type families in order to define \haskellIn{Odd}, you should define those as well. \droppoints
+\begin{solution}
+    \emph{Application.} 2 marks for \haskellIn{Not} (or equivalent) and 3 marks for \haskellIn{Odd}.
+\begin{minted}{haskell}
+type family Not (b :: Bool) :: Bool where
+  Not 'True = 'False
+  Not 'False = 'True
+
+type family Odd (n :: Nat) :: Bool where
+  Odd 'Zero = 'False
+  Odd ('Succ k) = Not (Odd k)
+\end{minted}
+\end{solution}
+
+\part[5] A university student wants to write a Haskell program to manage her marks. For this purpose, every module is either incomplete and has no mark or is complete and has a mark of type \haskellIn{Int}. Define a suitable GADT to represent modules so that their type indicates whether they have been completed or not. Define any other types you may need to help you. \droppoints
+
+\begin{solution}
+    \emph{Comprehension/Application.}
+\begin{minted}{haskell}
+data Status = Complete | Incomplete
+data Module (s :: Status) where
+    Module :: Module 'Incomplete
+    ModuleWithMark :: Int -> Module 'Complete
+\end{minted}
+\end{solution}
+
+\end{parts}
